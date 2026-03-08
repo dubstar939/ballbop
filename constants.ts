@@ -52,5 +52,5 @@ export const SHOOTER_X = CANVAS_WIDTH / 2;
 // Difficulty Scaling Settings
 export const MIN_SHOTS_TO_DROP = 3;
 export const MAX_SHOTS_TO_DROP = 7;
-export const PROJECTILE_BASE_SPEED = 8; 
+export const PROJECTILE_BASE_SPEED = 6; 
 export const COLLISION_THRESHOLD = 1.95; // Tighter contact

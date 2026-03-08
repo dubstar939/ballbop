@@ -1,0 +1,23 @@
+{
+  "name": "BallBop",
+  "short_name": "BallBop",
+  "description": "A high-octane, neon-colored bubble shooter game.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/ballbop-192/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://picsum.photos/seed/ballbop-512/512/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
