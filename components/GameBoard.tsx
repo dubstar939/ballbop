@@ -35,7 +35,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
   const palette = COLOR_PALETTES[(level - 1) % COLOR_PALETTES.length];
 
   const currentLevelShotsToDrop = useMemo(() => 
-    Math.max(MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP - Math.floor((level - 1) / 3)), 
+    Math.max(MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP - Math.floor((level - 1) / 2)), 
   [level]);
 
   const activeColorCount = useMemo(() => 
@@ -54,7 +54,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
 
   const generateBubble = useCallback((r: number, c: number): Bubble => {
     const { x, y } = getBubbleCoords(r, c);
-    const powerUpChance = POWER_UP_CHANCE_BASE + (level * 0.005);
+    const powerUpChance = POWER_UP_CHANCE_BASE + (level * 0.008);
     const isPowerUp = Math.random() < powerUpChance;
     const type: BubbleType = isPowerUp ? (Math.random() > 0.5 ? 'bomb' : 'laser') : 'normal';
     
@@ -68,7 +68,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
   }, [availableColors, level]);
 
   useEffect(() => {
-    const startRows = Math.min(GRID_ROWS - 4, 5 + Math.floor(level / 2));
+    const startRows = Math.min(GRID_ROWS - 3, 5 + Math.floor(level * 0.7));
     const newGrid: (Bubble | null)[][] = [];
     for (let r = 0; r < GRID_ROWS; r++) {
       newGrid[r] = [];

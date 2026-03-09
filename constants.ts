@@ -42,6 +42,30 @@ export const COLOR_PALETTES: Record<BubbleColor, string>[] = [
     sky: '#22d3ee',
     violet: '#a78bfa',
     fuchsia: '#f472b6'
+  },
+  { // Midnight Electric
+    rose: '#4f46e5',
+    amber: '#3b82f6',
+    lime: '#06b6d4',
+    sky: '#2dd4bf',
+    violet: '#6366f1',
+    fuchsia: '#8b5cf6'
+  },
+  { // Solar Flare
+    rose: '#f43f5e',
+    amber: '#fb923c',
+    lime: '#facc15',
+    sky: '#f87171',
+    violet: '#fb7185',
+    fuchsia: '#e11d48'
+  },
+  { // Jungle Pulse
+    rose: '#10b981',
+    amber: '#84cc16',
+    lime: '#22c55e',
+    sky: '#06b6d4',
+    violet: '#14b8a6',
+    fuchsia: '#2dd4bf'
   }
 ];
 
