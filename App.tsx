@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import GameBoard from './components/GameBoard';
 import { getAITip } from './services/geminiService';
 import { audio } from './services/audioService';
@@ -218,47 +219,77 @@ const App: React.FC = () => {
             )}
 
             {/* Enhanced Pause UI */}
-            {isPaused && !isCountingDown && (
-              <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl flex flex-col items-center justify-center z-[100] p-6 animate-in zoom-in-95 duration-300">
-                <div className="absolute top-8 left-8 right-8 flex justify-between items-center opacity-30">
-                   <div className="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">939PRO Diagnostic Mode</div>
-                   <div className="flex gap-1">
+            <AnimatePresence>
+              {isPaused && !isCountingDown && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl flex flex-col items-center justify-center z-[100] p-6"
+                >
+                  <div className="absolute top-8 left-8 right-8 flex justify-between items-center opacity-30">
+                    <div className="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">939PRO Diagnostic Mode</div>
+                    <div className="flex gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
                       <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse delay-75"></div>
                       <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse delay-150"></div>
-                   </div>
-                </div>
-                
-                <div className="w-20 h-20 mb-6 border-2 border-cyan-500/50 rounded-2xl flex items-center justify-center rotate-45">
-                   <div className="-rotate-45 flex gap-1">
+                    </div>
+                  </div>
+                  
+                  <motion.div 
+                    initial={{ scale: 0.8, rotate: 0 }}
+                    animate={{ scale: 1, rotate: 45 }}
+                    className="w-20 h-20 mb-6 border-2 border-cyan-500/50 rounded-2xl flex items-center justify-center"
+                  >
+                    <div className="-rotate-45 flex gap-1">
                       <div className="w-3 h-8 bg-cyan-500 rounded-full animate-pulse"></div>
                       <div className="w-3 h-8 bg-cyan-500 rounded-full animate-pulse delay-100"></div>
-                   </div>
-                </div>
+                    </div>
+                  </motion.div>
 
-                <h2 className="text-4xl font-game text-white mb-2 tracking-widest">SYSTEM</h2>
-                <h3 className="text-2xl font-game text-cyan-500 mb-10 animate-pulse">SUSPENDED</h3>
-                
-                <div className="w-full flex flex-col gap-3">
-                  <button 
-                    onClick={togglePause}
-                    className="w-full py-4 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-2xl text-white font-game text-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  <motion.h2 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-4xl font-game text-white mb-2 tracking-widest"
                   >
-                    RESUME SESSION
-                  </button>
-                  <button 
-                    onClick={() => setGameState('start')}
-                    className="w-full py-3 bg-slate-800 text-slate-400 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-700 transition-colors"
+                    SYSTEM
+                  </motion.h2>
+                  <motion.h3 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-2xl font-game text-cyan-500 mb-10 animate-pulse"
                   >
-                    EXIT TO HUB
-                  </button>
-                </div>
+                    SUSPENDED
+                  </motion.h3>
+                  
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="w-full flex flex-col gap-3"
+                  >
+                    <button 
+                      onClick={togglePause}
+                      className="w-full py-4 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-2xl text-white font-game text-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      RESUME SESSION
+                    </button>
+                    <button 
+                      onClick={() => setGameState('start')}
+                      className="w-full py-3 bg-slate-800 text-slate-400 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-700 transition-colors"
+                    >
+                      EXIT TO HUB
+                    </button>
+                  </motion.div>
 
-                <div className="absolute bottom-8 left-0 right-0 text-center opacity-20 pointer-events-none">
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.5em]">Auth: 939PRO_SECURE_PROTO_V4</p>
-                </div>
-              </div>
-            )}
+                  <div className="absolute bottom-8 left-0 right-0 text-center opacity-20 pointer-events-none">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.5em]">Auth: 939PRO_SECURE_PROTO_V4</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-sm z-50 p-8 text-center">

@@ -1,11 +1,12 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Bubble, BubbleColor, Projectile, Particle, BubbleType } from '../types';
 import { 
   CANVAS_WIDTH, CANVAS_HEIGHT, BUBBLE_RADIUS, GRID_ROWS, GRID_COLS, 
   COLOR_PALETTES, BUBBLE_COLORS, SHOOTER_X, SHOOTER_Y, 
   POWER_UP_CHANCE_BASE, PROJECTILE_BASE_SPEED, COLLISION_THRESHOLD,
-  MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP
+  MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP, WALLPAPERS
 } from '../constants';
 import { audio } from '../services/audioService';
 
@@ -34,9 +35,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
   const pulseRef = useRef(0);
   const palette = COLOR_PALETTES[(level - 1) % COLOR_PALETTES.length];
 
-  const currentLevelShotsToDrop = useMemo(() => 
-    Math.max(MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP - Math.floor((level - 1) / 2)), 
-  [level]);
+  const currentLevelShotsToDrop = useMemo(() => {
+    if (level <= 5) return MAX_SHOTS_TO_DROP;
+    return Math.max(MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP - Math.floor((level - 5) / 2) - 1);
+  }, [level]);
 
   const activeColorCount = useMemo(() => 
     Math.min(6, 4 + Math.floor((level - 1) / 2)), 
@@ -54,7 +56,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
 
   const generateBubble = useCallback((r: number, c: number): Bubble => {
     const { x, y } = getBubbleCoords(r, c);
-    const powerUpChance = POWER_UP_CHANCE_BASE + (level * 0.008);
+    const powerUpChance = POWER_UP_CHANCE_BASE + (level * 0.012);
     const isPowerUp = Math.random() < powerUpChance;
     const type: BubbleType = isPowerUp ? (Math.random() > 0.5 ? 'bomb' : 'laser') : 'normal';
     
@@ -154,14 +156,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
     return { bestR, bestC };
   };
 
-  const explode = (x: number, y: number, color: string, count: number = 12, velocityMult: number = 1.0) => {
+  const explode = (x: number, y: number, color: string, count: number = 20, velocityMult: number = 1.2) => {
     const newParticles: Particle[] = [];
     for (let i = 0; i < count; i++) {
       newParticles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 12 * velocityMult,
-        vy: (Math.random() - 0.5) * 12 * velocityMult,
-        radius: Math.random() * 5 + 1.5,
+        vx: (Math.random() - 0.5) * 14 * velocityMult,
+        vy: (Math.random() - 0.5) * 14 * velocityMult,
+        radius: Math.random() * 6 + 1.2,
         color,
         life: 1.0
       });
@@ -311,7 +313,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
              return { ...p, x: p.x + dx * 0.1, y: p.y + dy * 0.1, life: p.life - 0.01 };
           }
           return {
-            ...p, x: p.x + p.vx, y: p.y + p.vy, vx: p.vx * 0.97, vy: p.vy * 0.97, life: p.life - (p.type === 'beam' ? 0.02 : 0.015)
+            ...p, x: p.x + p.vx, y: p.y + p.vy, vx: p.vx * 0.985, vy: p.vy * 0.985, life: p.life - (p.type === 'beam' ? 0.015 : 0.012)
           };
         }).filter(p => p.life > 0));
 
@@ -461,11 +463,96 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
       ctx.restore();
     };
 
+    const drawWallpaper = () => {
+      const wallpaperType = WALLPAPERS[(level - 1) % WALLPAPERS.length];
+      ctx.save();
+      ctx.globalAlpha = 0.05;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+
+      switch (wallpaperType) {
+        case 'grid':
+          for (let x = 0; x < CANVAS_WIDTH; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
+          }
+          for (let y = 0; y < CANVAS_HEIGHT; y += 40) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke();
+          }
+          break;
+        case 'dots':
+          for (let x = 20; x < CANVAS_WIDTH; x += 40) {
+            for (let y = 20; y < CANVAS_HEIGHT; y += 40) {
+              ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+          break;
+        case 'waves':
+          for (let y = 0; y < CANVAS_HEIGHT; y += 60) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            for (let x = 0; x < CANVAS_WIDTH; x += 10) {
+              ctx.lineTo(x, y + Math.sin(x * 0.05) * 10);
+            }
+            ctx.stroke();
+          }
+          break;
+        case 'hexagons':
+          const size = 30;
+          for (let y = 0; y < CANVAS_HEIGHT + size; y += size * 1.5) {
+            for (let x = 0; x < CANVAS_WIDTH + size; x += size * Math.sqrt(3)) {
+              ctx.beginPath();
+              const offsetX = (Math.floor(y / (size * 1.5)) % 2) * (size * Math.sqrt(3) / 2);
+              for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                ctx.lineTo(x + offsetX + size * Math.cos(angle), y + size * Math.sin(angle));
+              }
+              ctx.closePath();
+              ctx.stroke();
+            }
+          }
+          break;
+        case 'diagonal-lines':
+          for (let i = -CANVAS_HEIGHT; i < CANVAS_WIDTH; i += 30) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + CANVAS_HEIGHT, CANVAS_HEIGHT); ctx.stroke();
+          }
+          break;
+        case 'crosshatch':
+          for (let i = -CANVAS_HEIGHT; i < CANVAS_WIDTH; i += 40) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + CANVAS_HEIGHT, CANVAS_HEIGHT); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(i + CANVAS_HEIGHT, 0); ctx.lineTo(i, CANVAS_HEIGHT); ctx.stroke();
+          }
+          break;
+        case 'circles':
+          for (let x = 40; x < CANVAS_WIDTH; x += 80) {
+            for (let y = 40; y < CANVAS_HEIGHT; y += 80) {
+              ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI * 2); ctx.stroke();
+            }
+          }
+          break;
+        case 'triangles':
+          const tSize = 40;
+          for (let y = 0; y < CANVAS_HEIGHT; y += tSize) {
+            for (let x = 0; x < CANVAS_WIDTH; x += tSize) {
+              ctx.beginPath();
+              ctx.moveTo(x, y);
+              ctx.lineTo(x + tSize, y);
+              ctx.lineTo(x + tSize / 2, y + tSize);
+              ctx.closePath();
+              ctx.stroke();
+            }
+          }
+          break;
+      }
+      ctx.restore();
+    };
+
     const render = () => {
       ctx.save();
       if (shake > 0) ctx.translate(Math.random() * shake - shake/2, Math.random() * shake - shake/2);
       ctx.clearRect(-40, -40, CANVAS_WIDTH + 80, CANVAS_HEIGHT + 80);
       
+      drawWallpaper();
+
       // Visual indicator for pause: subtle desaturation/darkening
       if (isPaused) {
          ctx.filter = 'grayscale(0.6) brightness(0.4)';
@@ -553,17 +640,29 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
       />
       
       {/* Level Goal Overlay */}
-      {showGoal && (
-        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
-          <div className="bg-slate-900/80 backdrop-blur-md px-10 py-8 rounded-[40px] border-4 border-cyan-500/50 shadow-2xl flex flex-col items-center animate-in fade-in zoom-in duration-300">
-            <h3 className="text-cyan-400 font-game text-4xl mb-2">LEVEL {level}</h3>
-            <p className="text-white font-game text-xl tracking-wider uppercase">GOAL: CLEAR ALL BUBBLES</p>
-            <div className="mt-4 w-12 h-1 bg-cyan-500/30 rounded-full overflow-hidden">
-               <div className="h-full bg-cyan-400 animate-[progress_2s_ease-in-out_infinite]"></div>
+      <AnimatePresence>
+        {showGoal && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -20 }}
+            className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
+          >
+            <div className="bg-slate-900/80 backdrop-blur-md px-10 py-8 rounded-[40px] border-4 border-cyan-500/50 shadow-2xl flex flex-col items-center">
+              <h3 className="text-cyan-400 font-game text-4xl mb-2">LEVEL {level}</h3>
+              <p className="text-white font-game text-xl tracking-wider uppercase">GOAL: CLEAR ALL BUBBLES</p>
+              <div className="mt-4 w-12 h-1 bg-cyan-500/30 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 2.5, ease: "linear" }}
+                  className="h-full bg-cyan-400"
+                ></motion.div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

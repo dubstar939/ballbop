@@ -66,7 +66,58 @@ export const COLOR_PALETTES: Record<BubbleColor, string>[] = [
     sky: '#06b6d4',
     violet: '#14b8a6',
     fuchsia: '#2dd4bf'
+  },
+  { // Deep Sea
+    rose: '#3b82f6',
+    amber: '#60a5fa',
+    lime: '#93c5fd',
+    sky: '#bfdbfe',
+    violet: '#1d4ed8',
+    fuchsia: '#1e40af'
+  },
+  { // Candy Pop
+    rose: '#ff7eb9',
+    amber: '#ffb1de',
+    lime: '#7afcff',
+    sky: '#feff9c',
+    violet: '#ff9cee',
+    fuchsia: '#ff7eb9'
+  },
+  { // Neon Desert
+    rose: '#f97316',
+    amber: '#fbbf24',
+    lime: '#ea580c',
+    sky: '#9a3412',
+    violet: '#c2410c',
+    fuchsia: '#7c2d12'
+  },
+  { // Glitch City
+    rose: '#ff0055',
+    amber: '#00ffcc',
+    lime: '#99ff00',
+    sky: '#00ccff',
+    violet: '#ff00ff',
+    fuchsia: '#ffffff'
+  },
+  { // Lava Lamp
+    rose: '#ff4d00',
+    amber: '#ff9900',
+    lime: '#ffcc00',
+    sky: '#ff0000',
+    violet: '#660000',
+    fuchsia: '#ff0066'
   }
+];
+
+export const WALLPAPERS = [
+  'grid',
+  'dots',
+  'waves',
+  'hexagons',
+  'diagonal-lines',
+  'crosshatch',
+  'circles',
+  'triangles'
 ];
 
 export const POWER_UP_CHANCE_BASE = 0.08;
