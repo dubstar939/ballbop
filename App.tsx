@@ -20,6 +20,10 @@ const App: React.FC = () => {
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [userPaletteIndex, setUserPaletteIndex] = useState<number | null>(null);
+  const [userWallpaperIndex, setUserWallpaperIndex] = useState<number | null>(null);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [gameKey, setGameKey] = useState(0);
   
   const countdownInterval = useRef<number | null>(null);
 
@@ -107,9 +111,10 @@ const App: React.FC = () => {
     }
   }, [score, level, gameState, updateTip]);
 
-  const handleStart = () => {
+  const handleStart = (startLevel: number = 1) => {
     setScore(0);
-    setLevel(1);
+    setLevel(startLevel);
+    setGameKey(prev => prev + 1);
     setGameState('playing');
     setIsPaused(false);
     setIsCountingDown(false);
@@ -199,8 +204,11 @@ const App: React.FC = () => {
         {gameState === 'playing' ? (
           <>
             <GameBoard 
+              key={gameKey}
               level={level}
               isPaused={isPaused}
+              userPaletteIndex={userPaletteIndex}
+              userWallpaperIndex={userWallpaperIndex}
               onScoreChange={setScore} 
               onGameOver={handleGameOver} 
               onWin={handleLevelClear}
@@ -305,25 +313,105 @@ const App: React.FC = () => {
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Personal Best</p>
                   <p className="text-2xl font-game text-fuchsia-400">{highScore}</p>
                 </div>
-                <p className="text-slate-400 mb-8 font-medium">Master the physics of BallBop and clear the board.</p>
-                <button 
-                  onClick={handleStart}
-                  className="w-full py-4 bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-2xl text-white font-game text-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-cyan-500/40"
-                >
-                  START GAME
-                </button>
+                
+                <div className="w-full flex flex-col gap-3 mb-4">
+                  <button 
+                    onClick={() => handleStart(1)}
+                    className="w-full py-4 bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-2xl text-white font-game text-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/40"
+                  >
+                    START GAME
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowThemeSelector(true)}
+                    className="w-full py-3 bg-slate-800 text-cyan-400 rounded-2xl font-bold text-xs uppercase tracking-widest border border-cyan-500/20 hover:bg-slate-700 transition-all"
+                  >
+                    SELECT THEME
+                  </button>
+                </div>
 
                 {showInstallButton && (
                   <button 
                     onClick={handleInstallClick}
-                    className="mt-4 w-full py-3 bg-slate-800 border border-cyan-500/30 rounded-2xl text-cyan-400 font-bold text-sm uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-slate-800 border border-slate-700 rounded-2xl text-slate-400 font-bold text-xs uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Install BallBop
+                    Install PWA
                   </button>
                 )}
+
+                <p className="text-[10px] text-slate-500 mt-4 uppercase tracking-[0.2em]">v1.4.2 PRO</p>
               </>
             )}
+
+            <AnimatePresence>
+              {showThemeSelector && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute inset-0 bg-slate-900 p-8 flex flex-col z-[200] overflow-y-auto"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-game text-white">THEME HUB</h2>
+                    <button onClick={() => setShowThemeSelector(false)} className="text-slate-400 p-2">
+                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest mb-3">Color Palette</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          onClick={() => setUserPaletteIndex(null)}
+                          className={`p-3 rounded-xl border transition-all text-xs font-bold ${userPaletteIndex === null ? 'bg-cyan-500 text-white border-cyan-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                        >
+                          DYNAMIC
+                        </button>
+                        {['NEON', 'CYBER', 'RETRO', 'ARCTIC', 'MIDNIGHT', 'SOLAR', 'JUNGLE', 'DEEP SEA', 'CANDY', 'DESERT', 'GLITCH', 'LAVA'].map((n, i) => (
+                          <button 
+                            key={n}
+                            onClick={() => setUserPaletteIndex(i)}
+                            className={`p-2 rounded-xl border transition-all text-[10px] font-bold ${userPaletteIndex === i ? 'bg-fuchsia-500 text-white border-fuchsia-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest mb-3">Background Matrix</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button 
+                          onClick={() => setUserWallpaperIndex(null)}
+                          className={`p-2 rounded-xl border transition-all text-[10px] font-bold ${userWallpaperIndex === null ? 'bg-cyan-500 text-white border-cyan-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                        >
+                          AUTO
+                        </button>
+                        {['GRID', 'DOTS', 'WAVES', 'HEX', 'DIAG', 'CROSS', 'CIRC', 'TRI'].map((n, i) => (
+                          <button 
+                            key={n}
+                            onClick={() => setUserWallpaperIndex(i)}
+                            className={`p-2 rounded-xl border transition-all text-[10px] font-bold ${userWallpaperIndex === i ? 'bg-fuchsia-500 text-white border-fuchsia-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowThemeSelector(false)}
+                    className="mt-auto w-full py-4 bg-slate-100 rounded-2xl text-slate-900 font-game text-xl"
+                  >
+                    SAVE CONFIG
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {gameState === 'next_level' && (
               <>
@@ -353,17 +441,27 @@ const App: React.FC = () => {
                 <h2 className="text-4xl font-game mb-2 text-rose-500">
                   GAME OVER
                 </h2>
-                <div className="text-slate-300 mb-8 font-medium">
+                <div className="text-slate-300 mb-6 font-medium">
                   <p className="text-xl">Final Score: <span className="font-game text-white">{score}</span></p>
                   <p className="text-sm mt-2 text-slate-400">Current Best: <span className="text-fuchsia-400 font-game">{highScore}</span></p>
-                  <p className="text-xs mt-6 text-slate-500 italic">"939PRO: Perfection is just a pop away."</p>
                 </div>
-                <button 
-                  onClick={handleStart}
-                  className="w-full py-4 bg-slate-100 rounded-2xl text-slate-900 font-game text-2xl hover:bg-white active:scale-95 transition-all"
-                >
-                  RETRY
-                </button>
+                
+                <div className="w-full flex flex-col gap-3">
+                  <button 
+                    onClick={() => handleStart(level)}
+                    className="w-full py-4 bg-cyan-500 rounded-2xl text-white font-game text-2xl hover:bg-cyan-400 active:scale-95 transition-all shadow-lg shadow-cyan-500/30"
+                  >
+                    RETRY LEVEL {level}
+                  </button>
+                  <button 
+                    onClick={() => handleStart(1)}
+                    className="w-full py-3 bg-slate-100 rounded-2xl text-slate-900 font-game text-lg hover:bg-white active:scale-95 transition-all"
+                  >
+                    MAIN HUB
+                  </button>
+                </div>
+                
+                <p className="text-xs mt-6 text-slate-500 italic opacity-50">"939PRO: Perfection is just a pop away."</p>
               </>
             )}
           </div>

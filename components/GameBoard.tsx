@@ -13,12 +13,17 @@ import { audio } from '../services/audioService';
 interface GameBoardProps {
   level: number;
   isPaused: boolean;
+  userPaletteIndex: number | null;
+  userWallpaperIndex: number | null;
   onScoreChange: (score: number) => void;
   onGameOver: (score: number) => void;
   onWin: () => void;
 }
 
-const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, onGameOver, onWin }) => {
+const GameBoard: React.FC<GameBoardProps> = ({ 
+  level, isPaused, userPaletteIndex, userWallpaperIndex, 
+  onScoreChange, onGameOver, onWin 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [grid, setGrid] = useState<(Bubble | null)[][]>([]);
@@ -30,14 +35,25 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
   const [shotsTaken, setShotsTaken] = useState(0);
   const [shake, setShake] = useState(0);
   const [showGoal, setShowGoal] = useState(false);
+  const [combo, setCombo] = useState(0);
   
   const mousePos = useRef({ x: SHOOTER_X, y: 0 });
   const pulseRef = useRef(0);
-  const palette = COLOR_PALETTES[(level - 1) % COLOR_PALETTES.length];
+  
+  const palette = useMemo(() => {
+    if (userPaletteIndex !== null && COLOR_PALETTES[userPaletteIndex]) {
+      return COLOR_PALETTES[userPaletteIndex];
+    }
+    return COLOR_PALETTES[(level - 1) % COLOR_PALETTES.length];
+  }, [level, userPaletteIndex]);
+
+  const multiplier = useMemo(() => Math.min(10, 1 + Math.floor(combo / 2)), [combo]);
 
   const currentLevelShotsToDrop = useMemo(() => {
-    if (level <= 5) return MAX_SHOTS_TO_DROP;
-    return Math.max(MIN_SHOTS_TO_DROP, MAX_SHOTS_TO_DROP - Math.floor((level - 5) / 2) - 1);
+    // Balanced difficulty: starts at 10, decreases as level increases.
+    const base = level <= 3 ? 12 : level <= 7 ? 10 : 8;
+    const decrease = Math.floor((level - 1) / 3);
+    return Math.max(MIN_SHOTS_TO_DROP, base - decrease);
   }, [level]);
 
   const activeColorCount = useMemo(() => 
@@ -56,7 +72,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
 
   const generateBubble = useCallback((r: number, c: number): Bubble => {
     const { x, y } = getBubbleCoords(r, c);
-    const powerUpChance = POWER_UP_CHANCE_BASE + (level * 0.012);
+    // Balanced power-up chance scaling
+    const powerUpChance = 0.05 + (level * 0.015);
     const isPowerUp = Math.random() < powerUpChance;
     const type: BubbleType = isPowerUp ? (Math.random() > 0.5 ? 'bomb' : 'laser') : 'normal';
     
@@ -70,7 +87,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
   }, [availableColors, level]);
 
   useEffect(() => {
-    const startRows = Math.min(GRID_ROWS - 3, 5 + Math.floor(level * 0.7));
+    // Increased row count with level
+    const startRows = Math.min(GRID_ROWS - 2, 4 + Math.floor(level * 0.8));
     const newGrid: (Bubble | null)[][] = [];
     for (let r = 0; r < GRID_ROWS; r++) {
       newGrid[r] = [];
@@ -189,10 +207,11 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
         clearedCount++;
       }
     }
-    const bonus = clearedCount * 25;
+    const bonus = clearedCount * 25 * multiplier;
     setScore(s => { onScoreChange(s + bonus); return s + bonus; });
+    setCombo(c => c + 1);
     return newGrid;
-  }, [onScoreChange]);
+  }, [onScoreChange, multiplier]);
 
   const triggerBomb = useCallback((r: number, c: number, currentGrid: (Bubble | null)[][], centerX?: number, centerY?: number) => {
     const newGrid = [...currentGrid.map(row => [...row])];
@@ -225,10 +244,11 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
       }
     }
     if (newGrid[r] && newGrid[r][c] !== undefined) newGrid[r][c] = null;
-    const bonus = clearedCount * 20;
+    const bonus = clearedCount * 20 * multiplier;
     setScore(s => { onScoreChange(s + bonus); return s + bonus; });
+    setCombo(c => c + 1);
     return newGrid;
-  }, [palette, onScoreChange]);
+  }, [palette, onScoreChange, multiplier]);
 
   const collectPowerUp = useCallback((type: BubbleType, startX: number, startY: number) => {
     if (type === 'normal') return;
@@ -393,6 +413,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
                 if (matches.length >= 3) {
                   audio.playPop(450 + matches.length * 30);
                   setShake(4 + matches.length * 0.7);
+                  setCombo(c => c + 1);
                   matches.forEach(m => {
                     const b = updatedGrid[m.r][m.c];
                     if (b) {
@@ -401,8 +422,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
                     }
                     updatedGrid[m.r][m.c] = null;
                   });
-                  setScore(s => { onScoreChange(s + matches.length * 20); return s + matches.length * 20; });
+                  const points = matches.length * 20 * multiplier;
+                  setScore(s => { onScoreChange(s + points); return s + points; });
                 } else {
+                  setCombo(0);
                   audio.playShoot();
                 }
               }
@@ -464,7 +487,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
     };
 
     const drawWallpaper = () => {
-      const wallpaperType = WALLPAPERS[(level - 1) % WALLPAPERS.length];
+      let wallpaperType = WALLPAPERS[(level - 1) % WALLPAPERS.length];
+      if (userWallpaperIndex !== null && WALLPAPERS[userWallpaperIndex]) {
+        wallpaperType = WALLPAPERS[userWallpaperIndex];
+      }
       ctx.save();
       ctx.globalAlpha = 0.05;
       ctx.strokeStyle = '#ffffff';
@@ -589,6 +615,18 @@ const GameBoard: React.FC<GameBoardProps> = ({ level, isPaused, onScoreChange, o
       const dropsIn = currentLevelShotsToDrop - (shotsTaken % currentLevelShotsToDrop);
       ctx.fillStyle = dropsIn <= 1 ? 'rgba(244, 63, 94, 1.0)' : 'rgba(255, 255, 255, 0.5)';
       ctx.font = '700 16px Luckiest Guy'; ctx.textAlign = 'left'; ctx.fillText(`THREAT IN: ${dropsIn}`, 20, CANVAS_HEIGHT - 20);
+      
+      // Multiplier HUD
+      if (multiplier > 1) {
+        ctx.save();
+        ctx.font = '900 24px Luckiest Guy';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = multiplier >= 5 ? '#f59e0b' : '#34d399';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fillText(`${multiplier}X MULTIPLIER`, CANVAS_WIDTH - 20, 40);
+        ctx.restore();
+      }
       
       if (storedPowerUp !== 'normal') {
         const glowScale = 1 + Math.sin(pulseRef.current * 4) * 0.1;
