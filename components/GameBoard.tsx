@@ -25,6 +25,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onScoreChange, onGameOver, onWin 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const ambientParticles = useRef<{x: number; y: number; radius: number; vx: number; vy: number; colorKey: string}[]>([]);
   const [score, setScore] = useState(0);
   const [grid, setGrid] = useState<(Bubble | null)[][]>([]);
   const [projectile, setProjectile] = useState<Projectile | null>(null);
@@ -36,6 +38,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const [shake, setShake] = useState(0);
   const [showGoal, setShowGoal] = useState(false);
   const [combo, setCombo] = useState(0);
+  const [initialBubbleCount, setInitialBubbleCount] = useState(1);
   
   const mousePos = useRef({ x: SHOOTER_X, y: 0 });
   const pulseRef = useRef(0);
@@ -48,6 +51,16 @@ const GameBoard: React.FC<GameBoardProps> = ({
   }, [level, userPaletteIndex]);
 
   const multiplier = useMemo(() => Math.min(10, 1 + Math.floor(combo / 2)), [combo]);
+
+  const currentCount = useMemo(() => {
+    let count = 0;
+    grid.forEach(row => row.forEach(b => { if (b) count++; }));
+    return count;
+  }, [grid]);
+
+  const progress = useMemo(() => {
+    return Math.max(0, Math.min(1, (initialBubbleCount - currentCount) / initialBubbleCount));
+  }, [initialBubbleCount, currentCount]);
 
   const currentLevelShotsToDrop = useMemo(() => {
     // Balanced difficulty: starts at 10, decreases as level increases.
@@ -90,18 +103,21 @@ const GameBoard: React.FC<GameBoardProps> = ({
     // Increased row count with level
     const startRows = Math.min(GRID_ROWS - 2, 4 + Math.floor(level * 0.8));
     const newGrid: (Bubble | null)[][] = [];
+    let bubbleCount = 0;
     for (let r = 0; r < GRID_ROWS; r++) {
       newGrid[r] = [];
       const colsInRow = r % 2 === 0 ? GRID_COLS : GRID_COLS - 1;
       for (let c = 0; c < colsInRow; c++) {
         if (r < startRows) {
           newGrid[r][c] = generateBubble(r, c);
+          bubbleCount++;
         } else {
           newGrid[r][c] = null;
         }
       }
     }
     setGrid(newGrid);
+    setInitialBubbleCount(bubbleCount || 1);
     setShotsTaken(0);
     setStoredPowerUp('normal');
     setNextColor(availableColors[Math.floor(Math.random() * availableColors.length)]);
@@ -572,12 +588,72 @@ const GameBoard: React.FC<GameBoardProps> = ({
       ctx.restore();
     };
 
+    const drawAmbientBackground = () => {
+      const keys = Object.keys(palette);
+      if (ambientParticles.current.length === 0) {
+        for (let i = 0; i < 40; i++) {
+          ambientParticles.current.push({
+            x: Math.random() * CANVAS_WIDTH,
+            y: Math.random() * CANVAS_HEIGHT,
+            radius: Math.random() * 2 + 0.8,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            colorKey: keys[Math.floor(Math.random() * keys.length)]
+          });
+        }
+      }
+
+      ctx.save();
+      ambientParticles.current.forEach(p => {
+        if (!isPaused) {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          const dx = p.x - mousePos.current.x;
+          const dy = p.y - mousePos.current.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            const force = (120 - dist) * 0.008;
+            const angle = Math.atan2(dy, dx);
+            p.x += Math.cos(angle) * force;
+            p.y += Math.sin(angle) * force;
+          }
+
+          if (p.x < 0) p.x = CANVAS_WIDTH;
+          if (p.x > CANVAS_WIDTH) p.x = 0;
+          if (p.y < 0) p.y = CANVAS_HEIGHT;
+          if (p.y > CANVAS_HEIGHT) p.y = 0;
+        }
+
+        const color = palette[p.colorKey as BubbleColor] || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.25;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = color;
+        ctx.fill();
+      });
+      ctx.restore();
+    };
+
     const render = () => {
+      if (containerRef.current) {
+        if (shake > 0) {
+          const dx = Math.random() * shake - shake / 2;
+          const dy = Math.random() * shake - shake / 2;
+          containerRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else {
+          containerRef.current.style.transform = 'translate(0px, 0px)';
+        }
+      }
+
       ctx.save();
       if (shake > 0) ctx.translate(Math.random() * shake - shake/2, Math.random() * shake - shake/2);
       ctx.clearRect(-40, -40, CANVAS_WIDTH + 80, CANVAS_HEIGHT + 80);
       
       drawWallpaper();
+      drawAmbientBackground();
 
       // Visual indicator for pause: subtle desaturation/darkening
       if (isPaused) {
@@ -667,7 +743,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full">
+      {/* Level Completion Progress Bar */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-900/60 backdrop-blur-md overflow-hidden z-20">
+        <div 
+          style={{ width: `${progress * 100}%` }} 
+          className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-400 transition-all duration-300 shadow-[0_0_8px_rgba(6,182,212,0.6)]" 
+        />
+      </div>
+
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}

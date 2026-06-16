@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [aiTip, setAiTip] = useState("Welcome to BallBop!");
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'next_level'>('start');
   const [isMuted, setIsMuted] = useState(false);
+  const [isMuteFlashing, setIsMuteFlashing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [countdown, setCountdown] = useState(3);
@@ -70,6 +71,8 @@ const App: React.FC = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
     audio.setMuted(nextMuted);
+    setIsMuteFlashing(true);
+    setTimeout(() => setIsMuteFlashing(false), 250);
   };
 
   const togglePause = () => {
@@ -201,6 +204,19 @@ const App: React.FC = () => {
 
       {/* Main Game Container */}
       <div className="relative w-full max-w-[400px] aspect-[2/3] bg-slate-800 rounded-3xl overflow-hidden border-4 border-slate-700 shadow-2xl shadow-cyan-500/20">
+        {/* Haptic sound toggle flash overlay */}
+        <AnimatePresence>
+          {isMuteFlashing && (
+            <motion.div
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`absolute inset-0 pointer-events-none z-[1001] rounded-[22px] p-2 ${isMuted ? 'bg-rose-500/20 shadow-[inset_0_0_40px_rgba(244,63,94,0.4)]' : 'bg-cyan-500/20 shadow-[inset_0_0_40px_rgba(6,182,212,0.4)]'}`}
+            />
+          )}
+        </AnimatePresence>
+
         {gameState === 'playing' ? (
           <>
             <GameBoard 
